@@ -5,7 +5,7 @@ import { Form } from '@unform/web';
 import { FormHandles } from '@unform/core';
 
 import * as Yup from 'yup';
-import { Link } from 'react-router-dom';
+import { Link, useHistory } from 'react-router-dom';
 import { useAuth } from '../../hooks/auth';
 import { useToast } from '../../hooks/toast';
 import getValidationErrors from '../../utils/getValidationErrors';
@@ -26,6 +26,7 @@ const SignIn: React.FC = () => {
 
   const { signIn } = useAuth(); // Consigo buscar os valores do AuthContext
   const { addToast } = useToast();
+  const history = useHistory();
 
   const handleSubmit = useCallback(
     async (data: SignInFormData) => {
@@ -39,11 +40,14 @@ const SignIn: React.FC = () => {
           password: Yup.string().required('Senha obrigatória'),
         });
 
+        await schema.validate(data, { abortEarly: false });
+
         await signIn({
           email: data.email,
           password: data.password,
         });
-        await schema.validate(data, { abortEarly: false });
+
+        history.push('/dashboard');
       } catch (err) {
         // console.log(err);
         if (err instanceof Yup.ValidationError) {
@@ -52,14 +56,15 @@ const SignIn: React.FC = () => {
           formRef.current?.setErrors(errors);
           return;
         }
+        addToast({
+          type: 'error',
+          title: 'Erro na autenticação',
+          description:
+            'Ocorreu um error ao fazer login, cheque as credenciais.',
+        });
       }
-      addToast({
-        type: 'error',
-        title: 'Erro na autenticação',
-        description: 'Ocorreu um error ao fazer login, cheque as credenciais.',
-      });
     },
-    [signIn, addToast],
+    [signIn, addToast, history],
   );
 
   return (
